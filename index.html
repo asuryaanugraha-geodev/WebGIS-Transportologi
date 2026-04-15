@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebGIS</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+    <!-- Style CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<div id="footer">
+    © A Surya Anugraha, 2026
+</div>
+
+<body>
+
+<!-- Header --> 
+<div id="header">
+    <h2>transportologi</h2>
+</div>
+
+<div id="nav-buttons">
+    <button class="nav-btn"onclick="setLevel(event,1)">Level 1 Analysis</button>
+    <button class="nav-btn" onclick="setLevel(event,2)">Level 2 Analysis</button>
+    <button class="nav-btn" onclick="setLevel(event,3)">Level 3 Analysis</button>
+</div>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- Sidebar -->
+<div id="sidebar">
+    <h3>Information Panel</h3>
+    <p>Konten nanti di sini</p>
+</div>
+
+<!-- Home Button -->
+<div id="home-btn" onclick="goHome()">🏠</div>
+
+
+
+<!-- JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
