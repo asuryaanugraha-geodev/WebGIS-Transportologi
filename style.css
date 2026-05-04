@@ -24,14 +24,21 @@ html, body {
     height: calc(100% - 60px);
 }
 
+/* =============================== */
+/* FIX POSISI CONTROL (WAJIB INI) */
+/* =============================== */
+.leaflet-bottom.leaflet-right {
+    bottom: 10px;   /* 🔥 geser semua control naik */
+}
+
 /* Home Button */
 #home-btn {
     position: absolute;
-    bottom: 100px;
+    bottom: 170px;
     right: 10px;
 
-    width: 32px;              /* ukuran kotak */
-    height: 32px;
+    width: 45px;              /* ukuran kotak */
+    height: 45px;
 
     display: flex;
     justify-content: center;
@@ -41,7 +48,7 @@ html, body {
     border-radius: 6px;
     cursor: pointer;
 
-    font-size: 15px;          /* perbesar icon */
+    font-size: 20px;          /* perbesar icon */
     
     box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     z-index: 1000;
@@ -115,21 +122,25 @@ html, body {
 /* ----------------- */
 #sidebar {
     position: absolute;
-    top: 100px;        /* bawah header + nav */
-    left: 10px;
 
-    width: 300px;
-    height: 480px;
+    top: 55%;                 /* center vertikal */
+    left: 15px;
+
+    transform: translateY(-50%);  /* true center */
+
+    width: 320px;
+    max-height: 80vh;        /* ikut tinggi layar */
 
     background: white;
     padding: 15px;
     border-radius: 20px;
 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     z-index: 1000;
 
-    overflow: hidden;   /* scroll kalau konten panjang */
-    display: none;   /* default disembunyikan */
+    display: none;
+
+    overflow: hidden;        /* container tetap rapi */
 }
 
 /* ----------------------- */
@@ -245,6 +256,31 @@ html, body {
 }
 
 /* ===================== */
+/* RESET BUTTON TO DEFAULT MAP*/
+/* ===================== */
+#reset-btn {
+    position: absolute;
+    top: 80px;
+    right: 10px;
+
+    width: 34px;
+    height: 34px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+
+    font-size: 16px;
+
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    z-index: 1000;
+}
+
+/* ===================== */
 /* FOOTER COPYRIGHT */
 /* ===================== */
 #footer {
@@ -263,3 +299,67 @@ html, body {
     backdrop-filter: blur(3px);
     z-index: 1000;
 }
+
+/* ===================== */
+/* MOBILE PHONE - SIDEBAR */
+/* ===================== */
+
+@media (max-width: 768px) {
+
+    #sidebar {
+        position: absolute;
+
+        bottom: 36.5px;     /* 🔥 jarak dari bawah */
+        left: 10px;
+
+        top: auto;        /* 🔥 MATIKAN top */
+        transform: none;  /* 🔥 MATIKAN center */
+
+        width: 260px;
+        height: 158px;
+
+        padding: 10px;
+        border-radius: 15px;
+        
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    #sidebar table {
+        font-size: 8px;   /* 🔥 kecilin font */
+    }
+
+    #sidebar h3 {
+        font-size: 9px;
+    }
+
+    #sidebar p {
+        font-size: 12px;
+    }
+
+}
+
+/* ===================== */
+/* MOBILE PHONE - NAV BUTTON */
+/* ===================== */
+
+@media (max-width: 768px) {
+
+    #nav-buttons {
+        position: absolute;
+        top: 70px;
+        left: 100px;
+        right: 105px;              /* 🔥 biar full width */
+
+        display: flex;
+        justify-content: space-between; /* 🔥 kiri-tengah-kanan */
+        align-items: center;
+
+        gap: 2px;                 /* kecilkan jarak */
+        padding: 0;
+    }
+
+}
+
