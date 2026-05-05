@@ -38,6 +38,9 @@ var level1Layer;
 var level1LabelLayer = L.layerGroup();
 var level1Data = null;
 var level1FeatureMap = {};   // 🔥 mapping kelurahan → layer
+var level2Layer;
+var level2BoundaryLayer;
+let selectedSchoolLayer = null;
 
 // ===================== //
 // HOME BUTTON
@@ -52,6 +55,8 @@ function goHome() {
 function goDefault() {
 
     if (level1Layer) map.removeLayer(level1Layer);
+    if (level2Layer) map.removeLayer(level2Layer); // 🔥 TAMBAH INI
+
     level1LabelLayer.clearLayers();
 
     if (defaultLayer) map.addLayer(defaultLayer);
@@ -103,24 +108,42 @@ function styleLevel1(feature) {
 // ===================== //
 function setLevel(event, level) {
 
+    // =====================
+    // BUTTON ACTIVE STYLE
+    // =====================
     document.querySelectorAll(".nav-btn")
         .forEach(btn => btn.classList.remove("active"));
 
     event.target.classList.add("active");
 
+    // =====================
+    // SHOW SIDEBAR
+    // =====================
     document.getElementById("sidebar").style.display = "block";
 
-    // RESET
+    // =====================
+    // REMOVE SEMUA LAYER
+    // =====================
     if (defaultLayer) map.removeLayer(defaultLayer);
-    if (level1Layer) map.removeLayer(level1Layer);
-    level1LabelLayer.clearLayers();
 
+    if (level1Layer) map.removeLayer(level1Layer);
+
+    if (level1LabelLayer) {
+        level1LabelLayer.clearLayers();
+        map.removeLayer(level1LabelLayer);
+    }
+
+    if (level2Layer) map.removeLayer(level2Layer);
+
+    // =====================
+    // SWITCH LEVEL
+    // =====================
     if (level === 1) {
         loadLevel1Map();
     } 
     else if (level === 2) {
-        renderLevel2Sidebar();
-    } 
+        loadLevel2Map();   // cukup ini saja
+    }
     else if (level === 3) {
         renderLevel3Sidebar();
     }
@@ -144,8 +167,8 @@ function renderLevel1Sidebar() {
         <table class="data-table">
             <tr>
                 <th class="sticky-col">Kelurahan</th>
-                <th>Rank</th>
-                <th>Score</th>
+                <th>Level 1 Rank</th>
+                <th>Level 1 Score</th>
                 <th>Crash</th>
                 <th>School</th>
                 <th>Population (%)</th>
@@ -182,16 +205,76 @@ function renderLevel1Sidebar() {
 }
 
 // ===================== //
-// SIDEBAR OTHER
+// SIDEBAR LEVEL 2
 // ===================== //
 function renderLevel2Sidebar() {
-    document.getElementById("sidebar").innerHTML =
-        "<h3>Level 2 Analysis</h3><p>Under Construction</p>";
+
+    if (!level2Data) return;
+
+    // 🔥 sort berdasarkan rank
+    let sorted = [...level2Data.features].sort((a, b) =>
+        (a.properties.Lvl2_Rank || 999) - (b.properties.Lvl2_Rank || 999)
+    );
+
+    let html = `
+        <h3>Level 2 Analysis</h3>
+
+        <div class="table-container">
+        <table class="data-table">
+            <tr>
+                <th class="sticky-col">School</th>
+                <th>Level 2 Rank</th>
+                <th>Level 2 Score</th>
+                <th>Severity Score</th>
+                <th>Number of Student</th>
+                <th>School Road Type</th>
+                <th>Km of Major Road</th>
+                <th>Number of Intersection</th>
+                <th>Number of Transit</th>
+            </tr>
+    `;
+
+    sorted.forEach(f => {
+
+        let p = f.properties;
+        let coord = f.geometry.coordinates;
+
+        let lng = coord[0];
+        let lat = coord[1];
+
+        // 🔥 highlight rank tinggi
+        let highlight =
+            p.Lvl2_Rank <= 10 ? "#ffe5e5" :
+            p.Lvl2_Rank <= 30 ? "#fff7cc" :
+            "";
+
+        html += `
+            <tr style="background:${highlight}; cursor:pointer;"
+                onclick="selectSchool(${lat}, ${lng})">
+                <td class="sticky-col">${p.School_Name || p.School_Nam || "-"}</td>
+                <td>${p.Lvl2_Rank}</td>
+                <td>${p.Lvl2_Score}</td>
+                <td>${p.Severity}</td>
+                <td>${p.Student}</td>
+                <td>${p.SR_Type}</td>
+                <td>${p.Km_major ? p.Km_major.toFixed(2) : "-"}</td>
+                <td>${p.Intersect}</td>
+                <td>${p.Transit}</td>
+            </tr>
+        `;
+    });
+
+    html += `</table></div>`;
+
+    document.getElementById("sidebar").innerHTML = html;
 }
 
+// ===================== //
+// SIDEBAR OTHER
+// ===================== //
 function renderLevel3Sidebar() {
     document.getElementById("sidebar").innerHTML =
-        "<h3>Level 3 Analysis</h3><p>Waiting for Data</p>";
+        "<h3>Level 3 Analysis</h3><p>Waiting for Data Confirmation</p>";
 }
 
 // ===================== //
@@ -339,6 +422,151 @@ function loadLevel1Map() {
     });
 }
 
+// ===================== //
+// LEVEL 2 MAP (REFINED)
+// ===================== //
+function loadLevel2Map() {
+
+    // 🔥 REMOVE SEMUA LAYER SEBELUMNYA
+    if (defaultLayer) map.removeLayer(defaultLayer);
+    if (level1Layer) map.removeLayer(level1Layer);
+    if (level1LabelLayer) map.removeLayer(level1LabelLayer);
+    if (level2Layer) map.removeLayer(level2Layer);
+    if (level2BoundaryLayer) map.removeLayer(level2BoundaryLayer);
+
+    // 🔥 LOAD DATA BERSAMAAN
+    Promise.all([
+        fetch('Data/solo_kelurahan_adm.geojson').then(res => res.json()),
+        fetch('Data/(v3_FINAL)_Level_2_School_Analysis.geojson').then(res => res.json())
+    ])
+    .then(([boundaryData, schoolData]) => {
+
+        // ===================== //
+        // 1. KELURAHAN BOUNDARY
+        // ===================== //
+        level2BoundaryLayer = L.geoJSON(boundaryData, {
+            style: {
+                color: "#000",
+                weight: 1.5,
+                fillOpacity: 0
+            }
+        }).addTo(map);
+
+        level2BoundaryLayer.bringToBack();
+
+
+        // ===================== //
+        // 2. SIMPAN DATA (WAJIB)
+        // ===================== //
+        level2Data = schoolData;
+
+
+        // ===================== //
+        // 3. SCHOOL POINTS
+        // ===================== //
+        level2Layer = L.geoJSON(schoolData, {
+
+            // 🎨 STYLE
+            pointToLayer: function (feature, latlng) {
+
+                let rank = feature.properties.Lvl2_Rank;
+
+                let color =
+                    rank === 1 ? "#8b0000" :
+                    rank === 2 ? "#e31a1c" :
+                    rank === 3 ? "#fb6a4a" :
+                    rank <= 10 ? "#fd8d3c" :
+                    rank <= 30 ? "#fed976" :
+                    "#31a354";
+
+                let radius =
+                    rank === 1 ? 9 :
+                    rank === 2 ? 8 :
+                    rank === 3 ? 7 :
+                    rank <= 10 ? 6 :
+                    rank <= 30 ? 5 :
+                    4;
+
+                return L.circleMarker(latlng, {
+                    radius: radius,
+                    fillColor: color,
+                    color: "#222",
+                    weight: 1,
+                    fillOpacity: 0.9
+                });
+            },
+
+            // ===================== //
+            // INTERACTION
+            // ===================== //
+            onEachFeature: function (feature, layer) {
+
+                let p = feature.properties;
+
+                // 🔹 TOOLTIP (HOVER)
+                layer.bindTooltip(`
+                    <b>${p.School_Name || p.School_Nam || "Sekolah"}</b><br><br>
+                    Rank: <b>${p.Lvl2_Rank}</b><br>
+                    Score: <b>${p.Lvl2_Score}</b><br><br>
+                    ${p.KELURAHAN}<br>
+                    ${p.KECAMATAN}
+                `, {
+                    direction: "top",
+                    offset: [0, -5],
+                    opacity: 0.9
+                });
+
+                // 🔹 HOVER EFFECT
+                layer.on({
+                    mouseover: function(e) {
+                        e.target.setStyle({
+                            weight: 2,
+                            color: "#000",
+                            fillOpacity: 1
+                        });
+                    },
+                    mouseout: function(e) {
+                        level2Layer.resetStyle(e.target);
+                    }
+                });
+
+                // 🔹 POPUP DETAIL
+                layer.bindPopup(`
+                    <b>${p.School_Name || p.School_Nam || "Sekolah"}</b><br><br>
+
+                    <b>Rank:</b> ${p.Lvl2_Rank}<br>
+                    <b>Score:</b> ${p.Lvl2_Score}<br><br>
+
+                    Kelurahan ${p.KELURAHAN}, ${p.KECAMATAN}<br><br>
+
+                    <b>Severity:</b> ${p.Severity ?? "-"}<br>
+                    <b>Intersect:</b> ${p.Intersect ?? "-"}<br>
+                    <b>Transit:</b> ${p.Transit ?? "-"}<br>
+                    <b>Student:</b> ${p.Student ?? "-"}<br>
+                    <b>Km of Major Road:</b> ${p.Km_major ? Number(p.Km_major).toFixed(2) : "-"} km<br>
+                    <b>Road Type:</b> ${p.SR_Type ?? "-"}
+                `);
+            }
+
+        }).addTo(map);
+
+
+        // ===================== //
+        // 4. SET VIEW
+        // ===================== //
+        map.setView([-7.5590, 110.8189], 13);
+
+
+        // ===================== //
+        // 5. SIDEBAR (TERAKHIR)
+        // ===================== //
+        renderLevel2Sidebar();
+
+    })
+    .catch(err => {
+        console.error("Error loading Level 2 data:", err);
+    });
+}
 
 // ========================= //
 // ZOOM TO KELURAHAN TABLE SIDEBAR
@@ -361,8 +589,58 @@ function zoomToKelurahan(namaKelurahan) {
     // 🔁 balik normal
     setTimeout(() => {
         level1Layer.resetStyle(layer);
-    }, 1500);
+    }, 15000);
 
     // 🔥 buka popup
     layer.openPopup();
+}
+
+// ===================== //
+// ZOOM TO SCHOOL TABLE SIDEBAR
+// ===================== //
+function zoomToSchool(lat, lng) {
+    map.setView([lat, lng], 17); // zoom lebih dekat dari kelurahan
+}
+
+// ===================== //
+// SELECT SCHOOL (HIGHLIGHT)
+// ===================== //
+function selectSchool(lat, lng) {
+
+    if (!level2Layer) return;
+
+    level2Layer.eachLayer(function(layer) {
+
+        let coord = layer.getLatLng();
+
+        if (coord.lat === lat && coord.lng === lng) {
+
+            // 🔥 reset sebelumnya
+            if (selectedSchoolLayer) {
+                level2Layer.resetStyle(selectedSchoolLayer);
+            }
+
+            // 🔥 highlight baru
+            layer.setStyle({
+                color: "#00ffff",   // outline cyan (stand out)
+                weight: 3,
+                fillOpacity: 1
+            });
+
+            layer.bringToFront();
+
+            selectedSchoolLayer = layer;
+
+            // 🔥 zoom
+            map.setView([lat, lng], 17);
+
+            // ⏱️ AUTO RESET (optional)
+            setTimeout(() => {
+                if (selectedSchoolLayer) {
+                    level2Layer.resetStyle(selectedSchoolLayer);
+                    selectedSchoolLayer = null;
+                }
+            }, 15000);
+        }
+    });
 }
